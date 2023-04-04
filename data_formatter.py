@@ -4,22 +4,24 @@
 import pandas as pd
 import numpy as np
 import os
+from tkinter import *
+from tkinter import filedialog
+from tkinter import ttk
 
 
 class DataFormatter:
-    def __init__(self, directory):
-        self.prefs_offering_file = "D:/betty's stuff/Raw Betty's Brain data in csv/Raw data in csv/prefs.csv"
-        self.input_store_file = "D:/betty's stuff/Raw Betty's Brain data in csv/Raw data in " \
-                                "csv/store-offering1-20170313_200314-March_2017.csv"
+    def __init__(self):
+        self.prefs_offering_file = ''
+        self.input_store_file = ''
+        self.sessions_file = ''
         self.offering_name = ''
         self.unit_name = ''
         self.app_name = ''
-        self.output_store_file = ""
-        self.prefs_file = os.path.join(directory, 'prefs.csv')
-        self.offering_file = os.path.join(directory, 'offerings.csv')
-        self.sessions_file = ''
-        self.subjects_file = os.path.join(directory, 'subjects.csv')
-        self.units_file = os.path.join(directory, 'units.csv')
+        self.output_store_file = ''
+        self.prefs_file = ''
+        self.offering_file = ''
+        self.subjects_file = ''
+        self.units_file = ''
 
         pref_columns = ['user', 'appName', 'key', 'value']
         self.prefDs = pd.DataFrame(data=np.zeros((0, len(pref_columns))), columns=pref_columns)
@@ -31,7 +33,74 @@ class DataFormatter:
         self.offeringsDs = pd.DataFrame(data=np.zeros((0, len(offerings_columns))), columns=offerings_columns)
         store_columns = ['user', 'offeringName', 'appName', 'key', 'index', 'value']
         self.storeDs = pd.DataFrame(data=np.zeros((0, len(store_columns))), columns=store_columns)
-        self.generata_data_files()
+
+        self.init_processing()
+
+    def init_processing(self):
+        root = Tk()
+        root.geometry('300x400')
+        root.resizable(False, False)
+        root.title('Log Processor')
+        root.columnconfigure(0, weight=1)
+        root.rowconfigure(0, weight=0)
+        root.rowconfigure(1, weight=0)
+        root.rowconfigure(2, weight=0)
+        root.rowconfigure(3, weight=0)
+        root.rowconfigure(4, weight=0)
+        root.rowconfigure(5, weight=0)
+
+        store_label = Label(root, text="", height=2,
+                            fg="blue", wraplength=300, justify="center")
+        prefs_label = Label(root, text="", height=2,
+                            fg="blue", wraplength=300, justify="center")
+        sessions_label = Label(root, text="", height=2,
+                               fg="blue", wraplength=300, justify="center")
+        output_label = Label(root, text="", height=2,
+                             fg="blue", wraplength=300, justify="center")
+
+        def browse_files(filetype):
+            if filetype.__contains__("output"):
+                filename = filedialog.askdirectory()
+            else:
+                filename = filedialog.askopenfilename(initialdir="", title="Select file",
+                                                      filetypes=(
+                                                          ("csv files", "*.csv"), ("all files", "*.*")))
+            if filetype.__contains__("store"):
+                store_label.configure(text="File opened: " + filename)
+                self.input_store_file = filename
+            elif filetype.__contains__("prefs"):
+                prefs_label.configure(text="File opened: " + filename)
+                self.prefs_offering_file = filename
+            elif filetype.__contains__("sessions"):
+                sessions_label.configure(text="File opened: " + filename)
+                self.sessions_file = filename
+            elif filetype.__contains__("output"):
+                output_label.configure(text=filename)
+                self.setup_output_files(filename)
+
+        def process_data():
+            self.generata_data_files()
+
+        btn = Button(root, text='Import Store File', command=lambda: browse_files("store"), bd='5', width=20)
+        btn_prefs = Button(root, text='Import prefs_offering File', command=lambda: browse_files("prefs"), bd='5',
+                           width=20)
+        btn_subjects = Button(root, text='Import sessions File', command=lambda: browse_files("sessions"), bd='5',
+                              width=20)
+        btn_output = Button(root, text='Set Output location', command=lambda: browse_files("output"), bd='5', width=20)
+        btn_process = Button(root, text='Generate Data files', command=process_data, bd='5', width=20)
+
+        btn.grid(column=0, row=0)
+        store_label.grid(column=0, row=1)
+        btn_prefs.grid(column=0, row=2)
+        prefs_label.grid(column=0, row=3)
+        btn_subjects.grid(column=0, row=4)
+        sessions_label.grid(column=0, row=5)
+        btn_output.grid(column=0, row=6)
+        output_label.grid(column=0, row=7)
+        ttk.Separator(root, orient=HORIZONTAL).grid(row=8,column=0,ipadx=200)
+        btn_process.grid(column=0, row=9)
+
+        root.mainloop()
 
     def generata_data_files(self):
         # Reading prefs_offering csv file.
@@ -89,10 +158,17 @@ class DataFormatter:
         self.storeDs['index'] = store_data['index'].tolist()
         self.storeDs['value'] = store_data['value'].tolist()
         self.storeDs = self.storeDs.set_index('user')
-        self.output_store_file = "store_" + self.offering_name + ".csv"
+        output_store_filename = "store_" + self.offering_name + ".csv"
+        self.output_store_file = os.path.join(self.output_store_file, output_store_filename)
         self.storeDs.to_csv(self.output_store_file, index='false', encoding='utf-8')
+
+    def setup_output_files(self, output_location):
+        self.prefs_file = os.path.join(output_location, 'prefs.csv')
+        self.offering_file = os.path.join(output_location, 'offerings.csv')
+        self.subjects_file = os.path.join(output_location, 'subjects.csv')
+        self.units_file = os.path.join(output_location, 'units.csv')
+        self.output_store_file = output_location
 
 
 if __name__ == "__main__":
-    out_directory = os.getcwd()
-    data_formatter = DataFormatter(out_directory)
+    data_formatter = DataFormatter()
